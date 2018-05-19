@@ -10,15 +10,6 @@
 
 
 <script type="text/javascript">
-	const graphConfig = {
-		width: 800,
-		height: 100,
-		color: "#e7231d",
-		addXAxis: true,
-		addYAxis: true,
-		fontSize: 10,
-		graphType: 'line'
-	}
 	const metricConfig = {
 	  name: 'total-page-views',
 	  project: 'en.wikipedia',
@@ -28,6 +19,6 @@
 	  start: '2018010100',
 	  end: '2018040100'
 	}
-	new WikistatsGraph(metricConfig, graphConfig).then(graph => document.getElementById('wikistatsTest').appendChild(graph.getCanvasGraph()))
+	new WikistatsGraph(metricConfig, {}).then(graph => document.getElementById('wikistatsTest').appendChild(graph.getCanvasGraph()))
 </script>
 </html>

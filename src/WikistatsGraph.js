@@ -6,16 +6,18 @@ const d3_array =  require('d3-array');
 const WikistatsAPIClient = require('./WikistatsAPIClient');
 const APIsConfig = require('./apisConfig');
 
+const GraphDefaults = require('./graphDefaults');
+
 class WikistatsGraph {
   constructor (metricConfig, graphConfig, data) {
     this.metricConfig = metricConfig;
-    this.graphConfig = graphConfig;
+    this.graphConfig = GraphDefaults.merge(graphConfig);
     if (data) {
-      this.render(metricConfig, graphConfig, data);
+      this.render(this.metricConfig, this.graphConfig, data);
     } else {
       const wikistatsClient = new WikistatsAPIClient(APIsConfig);
-      return wikistatsClient.getData(metricConfig).then((data) => {
-        this.render(metricConfig, graphConfig, data)
+      return wikistatsClient.getData(this.metricConfig).then((data) => {
+        this.render(this.metricConfig, this.graphConfig, data)
         return this
       });
     }
@@ -129,7 +131,7 @@ class WikistatsGraph {
         this.context.moveTo(x(d) + x.bandwidth() / 2, this.getAvailableGraphHeight());
         this.context.lineTo(x(d) + x.bandwidth() / 2, this.getAvailableGraphHeight() + 3);
         this.context.stroke();
-        const xAxisBottomPadding = graphConfig.fontSize / 2;
+        const xAxisBottomPadding = this.graphConfig.fontSize / 2;
         this.context.fillText(currentDateToPrint, x(d) + x.bandwidth() / 2, this.height - xAxisBottomPadding);
         availableBackSpace = spaceBetweenBarCenters - currentWordWidth / 2 - padding;
       } else {

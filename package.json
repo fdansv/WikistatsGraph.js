@@ -1,5 +1,5 @@
 {
-  "name": "WikistatsGraph",
+  "name": "wikistatsgraph",
   "version": "0.0.1",
   "description": "A charting library for Wikistats's metrics",
   "main": "dist/wikistatsgraph.js",
