@@ -1,4 +1,4 @@
-import _ from 'lodash';
+const _ = require('lodash');
 
 class WikistatsAPIClient {
   constructor (apisConfig) {
@@ -17,4 +17,4 @@ class WikistatsAPIClient {
 
 WikistatsAPIClient.AQS_HOST = 'https://wikimedia.org/api/rest_v1/metrics';
 
-export default WikistatsAPIClient;
+module.exports = WikistatsAPIClient;

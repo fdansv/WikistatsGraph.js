@@ -1,4 +1,4 @@
-export default {
+module.exports =  {
   'top-viewed-articles': {
     disabled: false,
     fullName: 'Top Viewed Articles',

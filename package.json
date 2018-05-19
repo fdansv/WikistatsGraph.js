@@ -1,11 +1,11 @@
 {
-  "name": "wikistatsjs",
+  "name": "WikistatsGraph",
   "version": "0.0.1",
   "description": "A charting library for Wikistats's metrics",
-  "main": "index.js",
+  "main": "dist/wikistatsgraph.js",
   "scripts": {
-    "dev": "./node_modules/webpack/bin/webpack.js --mode development --entry ./index.js --watch --output ./dist/wikistatsgraph-dev.js",
-    "build": "./node_modules/webpack/bin/webpack.js --entry ./index.js --output ./dist/wikistatsgraph.js"
+    "dev": "./node_modules/webpack/bin/webpack.js --watch",
+    "build": "./node_modules/webpack/bin/webpack.js --output ./dist/wikistatsgraph.js"
   },
   "author": "Francisco Dans",
   "license": "MIT",

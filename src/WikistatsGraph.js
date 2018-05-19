@@ -1,10 +1,10 @@
-import * as d3 from 'd3-selection';
-import * as d3_format from 'd3-format';
-import * as d3_time_format from 'd3-time-format';
-import * as d3_scale from 'd3-scale';
-import * as d3_array from 'd3-array';
-import WikistatsAPIClient from './WikistatsAPIClient'
-import APIsConfig from './apisConfig'
+const d3 =  require('d3-selection');
+const d3_format =  require('d3-format');
+const d3_time_format =  require('d3-time-format');
+const d3_scale =  require('d3-scale');
+const d3_array =  require('d3-array');
+const WikistatsAPIClient = require('./WikistatsAPIClient');
+const APIsConfig = require('./apisConfig');
 
 class WikistatsGraph {
   constructor (metricConfig, graphConfig, data) {
@@ -190,4 +190,4 @@ function createDate(timestamp) {
     return tmp;
 }
 
-export default WikistatsGraph;
+module.exports = WikistatsGraph;
