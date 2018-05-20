@@ -7,6 +7,7 @@ const WikistatsAPIClient = require('./WikistatsAPIClient');
 const APIsConfig = require('./apisConfig');
 
 const GraphDefaults = require('./graphDefaults');
+const CanvasRenderer = require('./renderer/canvas');
 
 class WikistatsGraph {
   constructor (metricConfig, graphConfig, data) {
@@ -15,10 +16,11 @@ class WikistatsGraph {
     if (data) {
       this.render(this.metricConfig, this.graphConfig, data);
     } else {
+      const allMetrics = this.getWikistatsMetrics();
       const wikistatsClient = new WikistatsAPIClient(APIsConfig);
       return wikistatsClient.getData(this.metricConfig).then((data) => {
-        this.render(this.metricConfig, this.graphConfig, data)
-        return this
+        this.render(this.metricConfig, this.graphConfig, data);
+        return this;
       });
     }
   }
@@ -27,23 +29,20 @@ class WikistatsGraph {
     this.data = data;
     this.width = graphConfig.width;
     this.height = graphConfig.height;
-    this.canvas = document.createElement("canvas");
-    this.canvas.setAttribute('width', this.width);
-    this.canvas.setAttribute('height', this.height);
-    this.context = this.canvas.getContext('2d');
-    this.clearGraph();
-    this.context.font = graphConfig.fontSize + 'px sans-serif';
-    this.context.textBaseline = 'middle';
+    this.renderer = new CanvasRenderer(this.width, this.height);
+    this.canvas = this.renderer.getElement();
+    this.context = this.renderer.context;
+    this.renderer.setFontSize(graphConfig.fontSize);
     this.y = this.getY();
     this.x = this.getX();
     graphConfig.addYAxis && this.renderYAxis();
     graphConfig.addXAxis && this.renderXAxis();
     this.renderForGraphType(graphConfig.graphType);
-    this.canvasGraph = this.canvas;
+    this.graph = this.renderer.getElement();
   }
   
   getY () {
-    const availableHeightForGraph = this.getAvailableGraphHeight();
+    const availableHeightForGraph = this.renderer.getAvailableGraphHeight(this.graphConfig.addXAxis, this.graphConfig.fontSize);
     const y = d3_scale.scaleLinear()
       .rangeRound([availableHeightForGraph, 0])
     y.domain([0, d3_array.max(this.data.items, d => d.views)])
@@ -52,7 +51,7 @@ class WikistatsGraph {
   
   getX () {
     const rows = this.data.items;
-    const availableHeightForGraph = this.getAvailableGraphHeight();
+    const availableHeightForGraph = this.renderer.getAvailableGraphHeight(this.graphConfig.addXAxis, this.graphConfig.fontSize);
     const yAxisWidth = this.width - this.getAvailableGraphWidth();
     const x = d3_scale.scaleBand()
       .rangeRound([yAxisWidth, this.width])
@@ -61,7 +60,7 @@ class WikistatsGraph {
     x.domain(rows.map(row => createDate(row.timestamp)));
     return x;
   }
-  
+
   renderForGraphType (graphType) {
     if (graphType === 'bar') {
       this.renderBars();
@@ -69,38 +68,22 @@ class WikistatsGraph {
       this.renderLines();
     }
   }
-  
+
   renderLines () {
-    const rows = this.data.items;
-    const x = this.x;
-    const y = this.y
-    this.context.strokeStyle = this.graphConfig.color;
-    this.context.beginPath();
-    this.context.moveTo(x(createDate(rows[0].timestamp)) + x.bandwidth() / 2, y(rows[0].views));
-    rows.slice(1).forEach(item => {
-      this.context.lineTo(x(createDate(item.timestamp)) + x.bandwidth() / 2, y(item.views))
-    });
-    this.context.stroke();
+    this.renderer.paintLine(this.x, this.y, this.data.items, this.graphConfig.color);
   }
-  
+
   renderBars () {
-    const availableHeightForGraph = this.getAvailableGraphHeight();
-    const x = this.x;
-    const y = this.y;
-    this.context.fillStyle = this.graphConfig.color;
-    this.data.items.forEach(item => {
-      this.context.beginPath();
-      this.context.rect(x(createDate(item.timestamp)), y(item.views), x.bandwidth(), availableHeightForGraph - y(item.views));
-      this.context.fill();
-    });
+    this.renderer.paintBars(this.x, this.y, this.data.items, this.graphConfig.color);
   }
-  
+
   renderYAxis () {
-    const availableHeightForGraph = this.getAvailableGraphHeight();
     const y = this.y;
+    const availableHeightForGraph = y.range()[0];
     const numberOfTicks = availableHeightForGraph / this.graphConfig.fontSize / 2;
     const ticks = this.y.ticks(numberOfTicks);
     const tickGuideWidth = 2;
+    this.context.textBaseline = 'middle';
     this.context.textAlign = "right";
     const yAxisWidth = this.width - this.getAvailableGraphWidth();
     ticks.forEach(tick => {
@@ -114,59 +97,22 @@ class WikistatsGraph {
   }
   
   renderXAxis () {
-    const x = this.x;
-    this.context.textAlign = "center";
-    const xTicks = x.domain();
-    const spaceBetweenBarCenters = x(xTicks[1]) - x(xTicks[0]);
-    const formatNumber = d3_time_format.timeFormat("%B %Y");
-    const padding = 3;
-    let availableBackSpace = x.bandwidth() / 2 - padding;
-    xTicks.forEach((d, i) => {
-      const currentDateToPrint = formatNumber(d);
-      const currentWordWidth = this.context.measureText(currentDateToPrint).width;
-      const backSpaceToUse = currentWordWidth / 2;
-      const currentWordFits = backSpaceToUse < availableBackSpace;
-      if (currentWordFits) {
-        this.context.beginPath();
-        this.context.moveTo(x(d) + x.bandwidth() / 2, this.getAvailableGraphHeight());
-        this.context.lineTo(x(d) + x.bandwidth() / 2, this.getAvailableGraphHeight() + 3);
-        this.context.stroke();
-        const xAxisBottomPadding = this.graphConfig.fontSize / 2;
-        this.context.fillText(currentDateToPrint, x(d) + x.bandwidth() / 2, this.height - xAxisBottomPadding);
-        availableBackSpace = spaceBetweenBarCenters - currentWordWidth / 2 - padding;
-      } else {
-        availableBackSpace += spaceBetweenBarCenters;
-      }
-    });
+    this.renderer.renderXAxis(this.x, this.y, this.graphConfig.fontSize);
   }
-  
-  getAvailableGraphHeight () {
-    if (!this.graphConfig.addXAxis) return this.height;
-    const xAxisBottomPadding = this.graphConfig.fontSize / 2;
-    const xAxisHeight = this.graphConfig.fontSize + xAxisBottomPadding
-    return this.height - xAxisHeight;
-  }
+
   getAvailableGraphWidth () {
     if (!this.graphConfig.addYAxis) return this.width;
-    const availableHeightForGraph = this.getAvailableGraphHeight();
-    const y = this.y;
-    const numberOfTicks = availableHeightForGraph / this.graphConfig.fontSize / 2;
-    const ticks = y.ticks(numberOfTicks);
-    const maxXWordWidth = ticks.reduce((p, c) => Math.max(this.context.measureText(d3_format.format(".2s")(c)).width, p), 0);
-    const tickGuideWidth = 2; 
-    const yAxisWidth = maxXWordWidth + tickGuideWidth;
+    const yAxisWidth = this.renderer.getYAxisWidth(this.y, this.graphConfig.fontSize, this.graphConfig.addXAxis);
     const availableWidthForGraph = this.width - yAxisWidth;
     return availableWidthForGraph;
-  }
-  getDataFromAPI () {
-    return new Promise();
-  }
-  clearGraph () {
-    this.context.clearRect(0, 0, this.width, this.height);
   }
   
   getCanvasGraph () {
     return this.canvas;
+  }
+
+  getWikistatsMetrics () {
+    return APIsConfig;
   }
 }
 
